@@ -50,5 +50,3 @@ Compare-Object -ReferenceObject $(Get-Content C:\Scripts\baseapps32.csv) -Differ
 Write-Host "`n32-bit Software`n"
 Import-Csv C:\Scripts\Temp\appdelta32.csv | Format-Table -AutoSize
 Remove-Connection
-
-
