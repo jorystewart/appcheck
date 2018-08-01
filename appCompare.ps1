@@ -2,9 +2,28 @@ function Remove-Connection {
     Remove-PSSession -ComputerName $target
     Invoke-Command -ComputerName $target -Credential $cred -ScriptBlock { Unregister-PSSessionConfiguration -Name appcheck -Force}
 }
+function Register-Session 
+{
+    $loop = $true
+    while ($loop -eq $true)
+    {
+        try {
+            Invoke-Command -ComputerName $target -Credential $cred -ScriptBlock { Register-PSSessionConfiguration -Name appcheck -RunAsCredential $using:cred -Force -WarningAction SilentlyContinue} -ErrorAction stop | out-null
+        }
+        catch {
+            Write-Host "`n$target is reachable, but is not accepting remote commands. Is PowerShell remoting configured on the target?`n"
+            $loopinput = Read-Host -Prompt "`n`n`nRetry? (N/n, otherwise retry)"
+            if ($loopinput -eq 'n' -or $loopinput -eq 'N')
+            {
+                $loop = $false
+                throw "`n$target is reachable, but is not accepting remote commands. Is PowerShell remoting configured on the target?`n"
+            }
+        }
+    }
+}
 Write-Host "`nThis script will get a list of installed software that is not included on the base image."
-$user = Read-Host -Prompt "`nPlease enter your username"
-$cred = Get-Credential $user
+#$user = Read-Host -Prompt "`nPlease enter your username"
+$cred = Get-Credential #$user
 $target = Read-Host -Prompt "`nEnter name of computer to check"
 #Tests the connection to the target
 Write-Host "`nVerifying connectivity..."
@@ -17,12 +36,7 @@ Remove-PSSession -ComputerName $target -ErrorAction Ignore
 Invoke-Command -ComputerName $target -Credential $cred -ScriptBlock { Unregister-PSSessionConfiguration -Name appcheck -Force } -ErrorAction Ignore
 #Registers session configuration on $target. Needed to bypass second hop problem
 Write-Host "`nRegistering session configuration on remote host..."
-try {
-    Invoke-Command -ComputerName $target -Credential $cred -ScriptBlock { Register-PSSessionConfiguration -Name appcheck -RunAsCredential $using:cred -Force -WarningAction SilentlyContinue} -ErrorAction stop | out-null
-}
-catch {
-    throw "`n$target is reachable, but is not accepting remote commands. Is PowerShell remoting configured on the target?`n"
-}
+Register-Session
 #Starts a remote PowerShell session after 3 seconds. Script fails without a delay.
 Write-Host "`nCreating session..."
 try {
@@ -47,6 +61,6 @@ Copy-Item -FromSession $session C:\Windows\Temp\apps32.csv -Destination C:\Scrip
 Compare-Object -ReferenceObject $(Get-Content C:\Scripts\csv\baseapps32ver.csv) -DifferenceObject $(Get-Content C:\Scripts\Temp\apps32.csv) | Export-Csv C:\Scripts\Temp\appdelta32.csv
 (Get-Content C:\Scripts\Temp\appdelta32.csv).replace('=>', 'Target') | Set-Content C:\Scripts\Temp\appdelta32.csv
 (Get-Content C:\Scripts\Temp\appdelta32.csv).replace('<=', "Base") | Set-Content C:\Scripts\Temp\appdelta32.csv
-Write-Host "`n32-bit Software`n"
+Write-Host "`n32-bit Software:`n"
 Import-Csv C:\Scripts\Temp\appdelta32.csv | where-object {$_.InputObject -notmatch "^.?$"} | Format-Table -AutoSize
 Remove-Connection
