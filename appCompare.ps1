@@ -30,4 +30,4 @@ Compare-Object -ReferenceObject $(Get-Content C:\Scripts\csv\baseapps32ver.csv) 
 (Get-Content C:\Scripts\Temp\appdelta32.csv).replace('=>', 'Target') | Set-Content C:\Scripts\Temp\appdelta32.csv
 (Get-Content C:\Scripts\Temp\appdelta32.csv).replace('<=', "Base") | Set-Content C:\Scripts\Temp\appdelta32.csv
 Write-Host "`n32-bit Software:`n"
-Import-Csv C:\Scripts\Temp\appdelta32.csv | where-object {$_.InputObject -notmatch "^.?$"} | Format-Table -AutoSize
+Import-Csv C:\Scripts\Temp\appdelta32.csv | Format-Table -AutoSize
